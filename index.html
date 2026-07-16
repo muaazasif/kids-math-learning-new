@@ -171,7 +171,7 @@
 
                         <!-- RESULTS LIST CONTAINER -->
                         <div class="min-h-[250px] flex flex-col justify-center relative">
-                            <!-- Default empty state (Moved outside gradingResultsList so it doesn't get destroyed on clear) -->
+                            <!-- Default empty state -->
                             <div id="noDataState" class="text-center py-10 text-slate-500 text-sm space-y-2">
                                 <span class="text-4xl block">💫</span>
                                 <p>Quest sheet solve karke upload karein.</p>
@@ -256,6 +256,7 @@
         // 1. Enter portal and log username
         function enterPortal() {
             const nameField = document.getElementById('username');
+            if (!nameField) return;
             const nameValue = nameField.value.trim();
             if(!nameValue) {
                 playFailSound();
@@ -263,22 +264,21 @@
                 return;
             }
             activeUserName = nameValue;
-            document.getElementById('user-display-name').textContent = nameValue;
+            const displayName = document.getElementById('user-display-name');
+            if (displayName) displayName.textContent = nameValue;
             
             // Play success entry sound
             playCorrectSound();
 
             // Transition Screens
-            document.getElementById('screen-portal').classList.add('hidden');
-            document.getElementById('screen-gameplay').classList.remove('hidden');
+            document.getElementById('screen-portal')?.classList.add('hidden');
+            document.getElementById('screen-gameplay')?.classList.remove('hidden');
         }
 
-        // 2. Dynamic Client-Side Excel Generation (No broken links!)
+        // 2. Dynamic Client-Side Excel Generation
         function downloadQuestSheet() {
-            // Generate standard workbook
             const wb = XLSX.utils.book_new();
             
-            // Build raw array of data to match original CSV precisely
             const aoa = [
                 ["📐 MATH WIZARD EXCEL CHALLENGE (Formula Edition)", "", "", "", "", "", "", "", ""],
                 ["", "", "", "", "", "", "", "", ""],
@@ -303,57 +303,93 @@
             ws['H11'] = { f: '(D11^3-E11^2)/F11' };
             ws['H12'] = { f: '(-E12+SQRT(E12^2-4*D12*F12))/(2*D12)' };
 
-            // Add auto live status formulas to Column I inside the downloaded sheet
             for(let r = 8; r <= 12; r++) {
                 ws[`I${r}`] = { f: `IF(ISBLANK(G${r}), "⚪ Pending", IF(ROUND(G${r},2)=ROUND(H${r},2), "🟢 PERFECT!", "🔴 TRY AGAIN"))` };
             }
 
-            // Sync scoreboard live status count inside spreadsheet too!
             ws['H4'] = { f: 'COUNTIF(I8:I12, "🟢 PERFECT!") & " / 5 Correct"' };
 
             XLSX.utils.book_append_sheet(wb, ws, "Math Wizard Challenge");
-            
-            // Download file
             XLSX.writeFile(wb, "Math_Wizard_Assignment.xlsx");
             playCorrectSound();
         }
 
-        // Drag and Drop Zone Configs
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('excelFile');
 
-        dropzone.addEventListener('click', () => fileInput.click());
-        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-cyan-500', 'bg-slate-900/65'); });
-        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-cyan-500', 'bg-slate-900/65'));
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('border-cyan-500', 'bg-slate-900/65');
-            if(e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                handleFileUpload(e.dataTransfer.files[0]);
-            }
-        });
+        if (dropzone) {
+            dropzone.addEventListener('click', () => fileInput && fileInput.click());
+            dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-cyan-500', 'bg-slate-900/65'); });
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-cyan-500', 'bg-slate-900/65'));
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-cyan-500', 'bg-slate-900/65');
+                if(e.dataTransfer.files.length && fileInput) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+        }
 
-        fileInput.addEventListener('change', (e) => {
-            if(e.target.files.length) handleFileUpload(e.target.files[0]);
-        });
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if(e.target.files.length) handleFileUpload(e.target.files[0]);
+            });
+        }
 
         function handleFileUpload(file) {
-            document.getElementById('uploadPrompt').classList.add('hidden');
-            document.getElementById('fileInfo').classList.remove('hidden');
-            document.getElementById('fileName').textContent = file.name;
+            const promptEl = document.getElementById('uploadPrompt');
+            const infoEl = document.getElementById('fileInfo');
+            const nameEl = document.getElementById('fileName');
+            
+            if (promptEl) promptEl.classList.add('hidden');
+            if (infoEl) infoEl.classList.remove('hidden');
+            if (nameEl) nameEl.textContent = file.name;
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array', cellFormula: true});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                evaluateUploadedFile(rows);
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array', cellFormula: true});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    evaluateUploadedFile(rows);
+                } catch(err) {
+                    console.error("Error reading file:", err);
+                    alert("Kuch garbar hui file read karne mein! Please valid .xlsx ya .csv file use karein.");
+                }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Smart dynamic validation check for math formulas
+        function checkFormulaCorrectness(lvlId, formulaStr, expectedVal, studentVal) {
+            if (!formulaStr) return false;
+            
+            const cleanStr = formulaStr.toString().replace(/\s+/g, '').toUpperCase();
+            
+            // Safety check: The formula MUST start with '=' to prove they are using spreadsheet logic!
+            if (!cleanStr.startsWith('=')) return false;
+
+            // Mathematical numerical evaluation check
+            const matchesValue = studentVal !== null && studentVal !== undefined && Math.abs(Number(studentVal) - expectedVal) < 0.15;
+            if (!matchesValue) return false;
+
+            // Validate that the correct cells are actually referenced
+            switch(lvlId) {
+                case "01": // a^2 + b^2 -> Row 8 (D8, E8)
+                    return (cleanStr.includes('D8') && cleanStr.includes('E8') && (cleanStr.includes('^2') || cleanStr.includes('SUMSQ')));
+                case "02": // a * b + c -> Row 9 (D9, E9, F9)
+                    return (cleanStr.includes('D9') && cleanStr.includes('E9') && cleanStr.includes('F9'));
+                case "03": // sqrt(a^2 + b^2) -> Row 10 (D10, E10)
+                    return (cleanStr.includes('SQRT') && cleanStr.includes('D10') && cleanStr.includes('E10'));
+                case "04": // (a^3 - b^2)/c -> Row 11 (D11, E11, F11)
+                    return (cleanStr.includes('D11^3') || cleanStr.includes('D11*D11*D11')) && cleanStr.includes('E11^2') && cleanStr.includes('F11');
+                case "05": // Quadratic -> Row 12 (D12, E12, F12)
+                    return cleanStr.includes('SQRT') && cleanStr.includes('E12^2') && cleanStr.includes('4*D12*F12') && cleanStr.includes('D12');
+            }
+            return false;
         }
 
         // Grader & AI formula validation
@@ -361,15 +397,12 @@
             const list = document.getElementById('gradingResultsList');
             const noDataState = document.getElementById('noDataState');
             
-            list.innerHTML = '';
-            if (noDataState) {
-                noDataState.classList.add('hidden');
-            }
+            if (list) list.innerHTML = '';
+            if (noDataState) noDataState.classList.add('hidden');
 
             let correctCount = 0;
             const totalTasks = 5;
 
-            // Mapping rows matching our output spreadsheet precisely
             const questions = [
                 { id: "01", name: "a² + b²", valA: 3, valB: 4, valC: "-", expected: 25, rowIndex: 7 },
                 { id: "02", name: "a * b + c", valA: 5, valB: 6, valC: 2, expected: 32, rowIndex: 8 },
@@ -384,9 +417,8 @@
                 let studentValue = null;
 
                 if (row) {
-                    // Col G is index 6, Col H is index 7
-                    const colG = row[6];
-                    const colH = row[7];
+                    const colG = row[6]; // Col G
+                    const colH = row[7]; // Col H
 
                     if (colG !== undefined && colG !== null) {
                         if (typeof colG === 'object' && colG.f) {
@@ -398,22 +430,22 @@
                     studentValue = colH;
                 }
 
-                // AI Cheating Check: Did they use a valid Excel cell formula?
-                const isFormulaUsed = formulaStr.startsWith('=') && 
-                                      (formulaStr.includes('+') || formulaStr.includes('*') || formulaStr.includes('-') || formulaStr.includes('/') || formulaStr.includes('^') || formulaStr.toUpperCase().includes('SQRT'));
-                
-                const matchesValue = studentValue !== null && studentValue !== undefined && Math.abs(Number(studentValue) - q.expected) < 0.1;
-                const isCorrect = isFormulaUsed && matchesValue;
+                // Call our robust checker
+                const isCorrect = checkFormulaCorrectness(q.id, formulaStr, q.expected, studentValue);
+                const formulaCheck = formulaStr.startsWith('=');
 
                 if (isCorrect) correctCount++;
 
-                appendCard(q.id, q.name, formulaStr, studentValue, isCorrect, isFormulaUsed);
+                appendCard(q.id, q.name, formulaStr, studentValue, isCorrect, formulaCheck);
             });
 
-            // Update score progress elements
+            // Update score progress elements safely
             const percentage = Math.round((correctCount / totalTasks) * 100);
-            document.getElementById('score-progress').style.width = `${percentage}%`;
-            document.getElementById('score-text').textContent = `${correctCount} / ${totalTasks} Completed`;
+            const scoreProg = document.getElementById('score-progress');
+            const scoreText = document.getElementById('score-text');
+            
+            if (scoreProg) scoreProg.style.width = `${percentage}%`;
+            if (scoreText) scoreText.textContent = `${correctCount} / ${totalTasks} Completed`;
 
             const successBox = document.getElementById('success-box');
             if (correctCount === totalTasks) {
@@ -423,19 +455,21 @@
                     spread: 90,
                     origin: { y: 0.6 }
                 });
-                successBox.classList.remove('hidden');
+                if (successBox) successBox.classList.remove('hidden');
                 
                 // Set custom dynamic random joke
+                const jokeText = document.getElementById('joke-text');
                 const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-                document.getElementById('joke-text').textContent = randomJoke;
+                if (jokeText) jokeText.textContent = randomJoke;
             } else {
                 playFailSound();
-                successBox.classList.add('hidden');
+                if (successBox) successBox.classList.add('hidden');
             }
         }
 
         function appendCard(lvl, title, formula, val, isCorrect, formulaCheck) {
             const list = document.getElementById('gradingResultsList');
+            if (!list) return;
             
             let badgeClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
             let badgeText = '🔴 TRY AGAIN';
@@ -473,19 +507,28 @@
 
         function resetFile(e) {
             if(e) e.stopPropagation();
-            fileInput.value = '';
-            document.getElementById('uploadPrompt').classList.remove('hidden');
-            document.getElementById('fileInfo').classList.add('hidden');
+            if(fileInput) fileInput.value = '';
+            
+            const promptEl = document.getElementById('uploadPrompt');
+            const infoEl = document.getElementById('fileInfo');
+            if (promptEl) promptEl.classList.remove('hidden');
+            if (infoEl) infoEl.classList.add('hidden');
             
             const noDataState = document.getElementById('noDataState');
             if (noDataState) {
                 noDataState.classList.remove('hidden');
             }
             
-            document.getElementById('gradingResultsList').innerHTML = '';
-            document.getElementById('success-box').classList.add('hidden');
-            document.getElementById('score-progress').style.width = '0%';
-            document.getElementById('score-text').textContent = '0 / 5 Completed';
+            const list = document.getElementById('gradingResultsList');
+            if (list) list.innerHTML = '';
+            
+            const successBox = document.getElementById('success-box');
+            if (successBox) successBox.classList.add('hidden');
+            
+            const scoreProg = document.getElementById('score-progress');
+            const scoreText = document.getElementById('score-text');
+            if (scoreProg) scoreProg.style.width = '0%';
+            if (scoreText) scoreText.textContent = '0 / 5 Completed';
         }
     </script>
 </body>

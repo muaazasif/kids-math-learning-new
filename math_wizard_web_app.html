@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathQuest - The Ultimate Excel Formula Wizard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for dynamic Excel Creation & Reading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Confetti effects for high-energy wins -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Fun Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Fredoka+One&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Comfortaa', cursive;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #090514 100%);
+        }
+        .header-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        .neon-glow-pink {
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.6);
+        }
+        .neon-glow-cyan {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 overflow-x-hidden selection:bg-cyan-500 selection:text-slate-900">
+
+    <!-- FLOATING BG SHAPES -->
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-pink-600 rounded-full blur-[150px] opacity-20 pointer-events-none"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-600 rounded-full blur-[150px] opacity-20 pointer-events-none"></div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="w-full max-w-4xl z-10 flex flex-col items-center">
+        
+        <!-- HEADER -->
+        <header class="text-center my-8 animate-fade-in">
+            <div class="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-cyan-500 p-[2px] rounded-full shadow-lg mb-4">
+                <span class="bg-slate-950 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-cyan-300">
+                    🚀 Excel Game Hub v2.0
+                </span>
+            </div>
+            <h1 class="header-font text-5xl md:text-7xl bg-gradient-to-r from-pink-400 via-yellow-300 to-cyan-400 bg-clip-text text-transparent tracking-wider filter drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">
+                MATHQUEST
+            </h1>
+            <p class="text-slate-400 mt-2 text-sm md:text-base font-medium">
+                Sleek, futuristic math formula grader with real-time Excel engine! 🧙‍♂️✨
+            </p>
+        </header>
+
+        <!-- SCREEN 1: PORTAL ENTRANCE (NAME ENTRY) -->
+        <div id="screen-portal" class="w-full max-w-xl glass-card rounded-3xl p-8 md:p-12 text-center space-y-8 shadow-2xl relative border border-slate-800 transition-all duration-500 transform scale-100">
+            <div class="space-y-3">
+                <span class="text-5xl">🎒</span>
+                <h2 class="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-300">
+                    Welcome to the Math World!
+                </h2>
+                <p class="text-slate-400 text-sm">Apna cool nickname enter karo aur magic adventure start karo!</p>
+            </div>
+
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Type Hero Name here... 😎" 
+                    class="w-full px-6 py-4 rounded-2xl bg-slate-950/80 border-2 border-slate-800 focus:border-cyan-400 focus:outline-none text-xl text-center text-cyan-300 font-bold placeholder-slate-600 transition-all duration-300 shadow-inner">
+                <button onclick="enterPortal()" 
+                    class="w-full bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 hover:from-pink-400 hover:to-cyan-400 text-white font-black text-xl py-4 rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-[1.03] active:scale-[0.98] relative overflow-hidden group">
+                    <span class="absolute right-0 w-8 h-32 -mt-12 transition-all duration-1000 transform translate-x-12 bg-white opacity-10 rotate-12 group-hover:-translate-x-96 ease"></span>
+                    ENTER DUNGEON! 🏰🔥
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: GAMEPLAY ZONE (HIDDEN BY DEFAULT) -->
+        <div id="screen-gameplay" class="hidden w-full space-y-8 animate-fade-in">
+            
+            <!-- HUD / SCOREBOARD -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- USER INFO CARD -->
+                <div class="glass-card rounded-2xl p-6 flex items-center gap-4 border border-slate-800">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-pink-500 to-cyan-500 flex items-center justify-center text-2xl shadow-lg">
+                        🧙‍♂️
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Active Wizard</div>
+                        <div id="user-display-name" class="text-xl font-bold text-pink-400 truncate max-w-[180px]">Hero</div>
+                    </div>
+                </div>
+
+                <!-- PROGRESS BAR CARD -->
+                <div class="glass-card rounded-2xl p-6 flex flex-col justify-center gap-2 border border-slate-800 md:col-span-2">
+                    <div class="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <span>Quest Completion</span>
+                        <span id="score-text" class="text-cyan-400">0 / 5 Completed</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-4 rounded-full overflow-hidden border border-slate-800/80 p-[2px]">
+                        <div id="score-progress" class="bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 h-full rounded-full transition-all duration-700 shadow-lg" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CORE PANELS -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- LEFT PANEL: ACTION ZONE (5 COLS) -->
+                <div class="lg:col-span-5 space-y-6">
+                    
+                    <!-- STEP 1: DOWNLOAD -->
+                    <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4 shadow-xl">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-pink-500/10 text-pink-400 flex items-center justify-center font-bold">1</span>
+                            <h3 class="text-lg font-bold text-slate-200">Download the Scroll!</h3>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Niche diye gaye button par click karke apni secret math assignment sheet download karein. Is sheet mein real math variables lock hain!
+                        </p>
+                        <!-- CLIENT SIDE DYNAMIC EXCEL DOWNLOAD -->
+                        <button onclick="downloadQuestSheet()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all transform hover:-translate-y-1 inline-flex items-center justify-center gap-2 border border-pink-400/20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Download Quest.xlsx
+                        </button>
+                    </div>
+
+                    <!-- STEP 2: UPLOAD -->
+                    <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4 shadow-xl">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">2</span>
+                            <h3 class="text-lg font-bold text-slate-200">Upload Solved Scroll</h3>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Excel sheet open karke **Column G (Your Excel Formula)** mein formulas likhein (Jaise: `=D8^2 + E8^2`). Save karke yahan upload karein!
+                        </p>
+                        
+                        <!-- Drag & Drop Zone -->
+                        <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-cyan-500 rounded-xl p-6 text-center cursor-pointer bg-slate-950/60 transition-all duration-300 flex flex-col items-center justify-center min-h-[140px] group">
+                            <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="hidden">
+                            
+                            <div id="uploadPrompt" class="space-y-2">
+                                <span class="text-3xl block group-hover:scale-125 transition-transform duration-300">📁</span>
+                                <p class="text-xs font-semibold text-slate-300">Drag files here or <span class="text-cyan-400 underline">Browse</span></p>
+                                <p class="text-[10px] text-slate-500">Supports .xlsx, .xls</p>
+                            </div>
+                            
+                            <div id="fileInfo" class="hidden space-y-2 w-full">
+                                <span class="text-2xl block text-emerald-400 animate-pulse">⚡</span>
+                                <p class="text-emerald-400 font-bold text-xs truncate px-2" id="fileName">file_name.xlsx</p>
+                                <button onclick="resetFile(event)" class="text-[10px] bg-rose-500/20 text-rose-300 hover:bg-rose-500/40 px-3 py-1 rounded-lg border border-rose-500/20 font-semibold transition-all">Remove File</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT PANEL: LIVE EVALUATION GRADER (7 COLS) -->
+                <div class="lg:col-span-7 bg-slate-950/45 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                            <h3 class="text-lg font-bold text-slate-200">📋 Grading Real-Time Terminal</h3>
+                            <span class="bg-cyan-500/10 text-cyan-400 text-[10px] px-3 py-1 rounded-full border border-cyan-500/20 font-mono tracking-wider">AI Engines Active</span>
+                        </div>
+
+                        <!-- RESULTS LIST CONTAINER -->
+                        <div id="gradingResultsList" class="space-y-3 min-h-[250px] flex flex-col justify-center">
+                            <!-- Default empty state -->
+                            <div id="noDataState" class="text-center py-10 text-slate-500 text-sm space-y-2">
+                                <span class="text-4xl block">💫</span>
+                                <p>Quest sheet solve karke upload karein.</p>
+                                <p class="text-xs text-slate-600">AI aapke exact formulas check karega!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUCCESS POPUP PANEL / JOKES BOX -->
+                    <div id="success-box" class="hidden mt-6 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/30 rounded-xl p-5 space-y-3 relative overflow-hidden animate-bounce-short">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">🔥</span>
+                            <h4 class="text-lg font-black text-emerald-400 uppercase tracking-widest">WOW! KYA KAMAAL KAR DIYA!</h4>
+                        </div>
+                        <p class="text-sm text-slate-200 leading-relaxed">
+                            Aapne 100/100 points secure kar liye hain! Aap sach mein Math Wizard ho! Chalo ab ek super funny math joke suno:
+                        </p>
+                        <div class="bg-black/40 p-4 rounded-xl italic text-yellow-300 border-l-4 border-yellow-400 text-xs md:text-sm font-semibold">
+                            🤖 <span id="joke-text">Joke loading...</span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="text-center text-slate-600 text-[11px] my-6 space-y-1">
+        <p>⚡ Powered by Super-Fast JavaScript Sheet Evaluator & Neon UI Engine</p>
+        <p>&copy; 2026 MathQuest Gamified Learning</p>
+    </footer>
+
+    <!-- INTERACTIVE GAME LOGIC -->
+    <script>
+        const jokes = [
+            "Why was the math book sad? Because it had too many problems! 📘😂",
+            "Why is six afraid of seven? Because seven eight nine! 🧛‍♂️",
+            "Parallel lines have so much in common. It’s a shame they’ll never meet! 💔",
+            "What do you call a tool that does math? A multi-ply-er! 🧮",
+            "Why did the math teacher go to the beach? To get some tangent! 🏖️"
+        ];
+
+        let activeUserName = 'Hero';
+
+        // Sound Player using Web Audio API (Zero external assets needed!)
+        const playTone = (freq, type, duration) => {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
+            osc.stop(ctx.currentTime + duration);
+        };
+
+        const playCorrectSound = () => {
+            playTone(523.25, 'triangle', 0.15); // C5
+            setTimeout(() => playTone(659.25, 'triangle', 0.15), 100); // E5
+            setTimeout(() => playTone(783.99, 'triangle', 0.3), 200); // G5
+        };
+
+        const playFailSound = () => {
+            playTone(293.66, 'sawtooth', 0.2); // D4
+            setTimeout(() => playTone(220.00, 'sawtooth', 0.4), 150); // A3
+        };
+
+        // 1. Enter portal and log username
+        function enterPortal() {
+            const nameField = document.getElementById('username');
+            const nameValue = nameField.value.trim();
+            if(!nameValue) {
+                playFailSound();
+                alert("Oye Wizard! Pehle apna pyara sa name to likho! 🧙‍♂️");
+                return;
+            }
+            activeUserName = nameValue;
+            document.getElementById('user-display-name').textContent = nameValue;
+            
+            // Play success entry sound
+            playCorrectSound();
+
+            // Transition Screens
+            document.getElementById('screen-portal').classList.add('hidden');
+            document.getElementById('screen-gameplay').classList.remove('hidden');
+        }
+
+        // 2. Dynamic Client-Side Excel Generation (No broken links!)
+        function downloadQuestSheet() {
+            // Generate standard workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Build raw array of data to match original CSV precisely
+            const aoa = [
+                ["📐 MATH WIZARD EXCEL CHALLENGE (Formula Edition)", "", "", "", "", "", "", "", ""],
+                ["", "", "", "", "", "", "", "", ""],
+                ["", "", "", "", "", "", "", "", ""],
+                ["Student Name:", activeUserName, "", "", "", "", "LIVE SCORE:", "0 / 5 Correct", ""],
+                ["", "", "", "", "", "", "", "", ""],
+                ["👉 INSTRUCTIONS: Write the correct mathematical Excel Formula in Column G using cell references (e.g., =D8^2 + E8^2). Do NOT type direct numbers!", "", "", "", "", "", "", "", ""],
+                ["Level", "Difficulty", "Math Equation", "Value: a", "Value: b", "Value: c", "Your Excel Formula (TYPE HERE)", "Expected Result", "Live Status"],
+                ["01", "🟢 Easy", "a² + b@", 3, 4, "-", "", 25, ""],
+                ["02", "🟢 Easy", "a * b + c", 5, 6, 2, "", 32, ""],
+                ["03", "🟡 Medium", "√(a² + b²)", 6, 8, "-", "", 10, ""],
+                ["04", "🟡 Medium", "(a³ - b²) / c", 4, 2, 2, "", 30, ""],
+                ["05", "🔴 Expert", "(-b + √(b² - 4ac)) / 2a", 1, -5, 6, "", 3, ""]
+            ];
+
+            // Change the 'a² + b@' typo to match standard equation visual representation
+            aoa[7][2] = "a² + b²";
+
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+            // Adding real functional spreadsheet formulas to the cells
+            // Level 1 Expected: =D8^2+E8^2
+            ws['H8'] = { f: 'D8^2+E8^2' };
+            // Level 2 Expected: =D9*E9+F9
+            ws['H9'] = { f: 'D9*E9+F9' };
+            // Level 3 Expected: =SQRT(D10^2+E10^2)
+            ws['H10'] = { f: 'SQRT(D10^2+E10^2)' };
+            // Level 4 Expected: =(D11^3-E11^2)/F11
+            ws['H11'] = { f: '(D11^3-E11^2)/F11' };
+            // Level 5 Expected: =(-E12+SQRT(E12^2-4*D12*F12))/(2*D12)
+            ws['H12'] = { f: '(-E12+SQRT(E12^2-4*D12*F12))/(2*D12)' };
+
+            // Add auto live status formulas to Column I inside the downloaded sheet
+            for(let r = 8; r <= 12; r++) {
+                ws[`I${r}`] = { f: `IF(ISBLANK(G${r}), "⚪ Pending", IF(ROUND(G${r},2)=ROUND(H${r},2), "🟢 PERFECT!", "🔴 TRY AGAIN"))` };
+            }
+
+            // Sync scoreboard live status count inside spreadsheet too!
+            ws['H4'] = { f: 'COUNTIF(I8:I12, "🟢 PERFECT!") & " / 5 Correct"' };
+
+            XLSX.utils.book_append_sheet(wb, ws, "Math Wizard Challenge");
+            
+            // Download file
+            XLSX.writeFile(wb, "Math_Wizard_Assignment.xlsx");
+            playCorrectSound();
+        }
+
+        // Drag and Drop Zone Configs
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('excelFile');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-cyan-500', 'bg-slate-900/65'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-cyan-500', 'bg-slate-900/65'));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-cyan-500', 'bg-slate-900/65');
+            if(e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files.length) handleFileUpload(e.target.files[0]);
+        });
+
+        function handleFileUpload(file) {
+            document.getElementById('uploadPrompt').classList.add('hidden');
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('fileName').textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array', cellFormula: true});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                evaluateUploadedFile(rows);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Grader & AI formula validation
+        function evaluateUploadedFile(rows) {
+            const list = document.getElementById('gradingResultsList');
+            list.innerHTML = '';
+            document.getElementById('noDataState').classList.add('hidden');
+
+            let correctCount = 0;
+            const totalTasks = 5;
+
+            // Mapping rows matching our output spreadsheet precisely
+            const questions = [
+                { id: "01", name: "a² + b²", valA: 3, valB: 4, valC: "-", expected: 25, rowIndex: 7 },
+                { id: "02", name: "a * b + c", valA: 5, valB: 6, valC: 2, expected: 32, rowIndex: 8 },
+                { id: "03", name: "√(a² + b²)", valA: 6, valB: 8, valC: "-", expected: 10, rowIndex: 9 },
+                { id: "04", name: "(a³ - b²) / c", valA: 4, valB: 2, valC: 2, expected: 30, rowIndex: 10 },
+                { id: "05", name: "(-b + √(b² - 4ac)) / 2a", valA: 1, valB: -5, valC: 6, expected: 3, rowIndex: 11 }
+            ];
+
+            questions.forEach((q) => {
+                const row = rows[q.rowIndex];
+                let formulaStr = '';
+                let studentValue = null;
+
+                if (row) {
+                    // Col G is index 6, Col H is index 7
+                    const colG = row[6];
+                    const colH = row[7];
+
+                    if (colG) {
+                        if (typeof colG === 'object' && colG.f) {
+                            formulaStr = '=' + colG.f;
+                        } else {
+                            formulaStr = colG.toString();
+                        }
+                    }
+                    studentValue = colH;
+                }
+
+                // AI Cheating Check: Did they use a valid Excel cell formula?
+                const isFormulaUsed = formulaStr.startsWith('=') && 
+                                      (formulaStr.includes('+') || formulaStr.includes('*') || formulaStr.includes('-') || formulaStr.includes('/') || formulaStr.includes('^') || formulaStr.toUpperCase().includes('SQRT'));
+                
+                const matchesValue = studentValue !== null && Math.abs(Number(studentValue) - q.expected) < 0.1;
+                const isCorrect = isFormulaUsed && matchesValue;
+
+                if (isCorrect) correctCount++;
+
+                appendCard(q.id, q.name, formulaStr, studentValue, isCorrect, isFormulaUsed);
+            });
+
+            // Update score progress elements
+            const percentage = Math.round((correctCount / totalTasks) * 100);
+            document.getElementById('score-progress').style.width = `${percentage}%`;
+            document.getElementById('score-text').textContent = `${correctCount} / ${totalTasks} Completed`;
+
+            const successBox = document.getElementById('success-box');
+            if (correctCount === totalTasks) {
+                playCorrectSound();
+                confetti({
+                    particleCount: 250,
+                    spread: 90,
+                    origin: { y: 0.6 }
+                });
+                successBox.classList.remove('hidden');
+                
+                // Set custom dynamic random joke
+                const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+                document.getElementById('joke-text').textContent = randomJoke;
+            } else {
+                playFailSound();
+                successBox.classList.add('hidden');
+            }
+        }
+
+        function appendCard(lvl, title, formula, val, isCorrect, formulaCheck) {
+            const list = document.getElementById('gradingResultsList');
+            
+            let badgeClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+            let badgeText = '🔴 TRY AGAIN';
+            let borderStyle = 'border-rose-500/30 bg-rose-950/20';
+
+            if (isCorrect) {
+                badgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                badgeText = '🟢 PERFECT!';
+                borderStyle = 'border-emerald-500/30 bg-emerald-950/20';
+            } else if (!formulaCheck && formula !== '') {
+                badgeClass = 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+                badgeText = '⚠️ NO FORMULA (Cheating Check!)';
+                borderStyle = 'border-yellow-500/30 bg-yellow-950/20';
+            }
+
+            const card = `
+                <div class="border rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:scale-[1.01] ${borderStyle}">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-black text-cyan-400 bg-cyan-950 px-2.5 py-0.5 rounded-full border border-cyan-800/30">LEVEL ${lvl}</span>
+                            <h4 class="text-sm font-black text-slate-200">${title}</h4>
+                        </div>
+                        <div class="flex flex-wrap gap-x-4 text-xs font-mono text-slate-400 mt-1">
+                            <div>Formula: <span class="text-amber-300 font-bold">${formula || '(Blank)'}</span></div>
+                            <div>Value: <span class="text-slate-200 font-bold">${val !== null && val !== undefined ? val : 'None'}</span></div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-black tracking-wider px-3 py-1.5 rounded-full border ${badgeClass} text-center md:text-right">
+                        ${badgeText}
+                    </span>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', card);
+        }
+
+        function resetFile(e) {
+            if(e) e.stopPropagation();
+            fileInput.value = '';
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+            document.getElementById('fileInfo').classList.add('hidden');
+            document.getElementById('noDataState').classList.remove('hidden');
+            document.getElementById('gradingResultsList').innerHTML = `
+                <div id="noDataState" class="text-center py-10 text-slate-500 text-sm space-y-2">
+                    <span class="text-4xl block">💫</span>
+                    <p>Quest sheet solve karke upload karein.</p>
+                    <p class="text-xs text-slate-600">AI aapke exact formulas check karega!</p>
+                </div>`;
+            document.getElementById('success-box').classList.add('hidden');
+            document.getElementById('score-progress').style.width = '0%';
+            document.getElementById('score-text').textContent = '0 / 5 Completed';
+        }
+    </script>
+</body>
+</html>

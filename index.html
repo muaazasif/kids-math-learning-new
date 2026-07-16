@@ -170,13 +170,16 @@
                         </div>
 
                         <!-- RESULTS LIST CONTAINER -->
-                        <div id="gradingResultsList" class="space-y-3 min-h-[250px] flex flex-col justify-center">
-                            <!-- Default empty state -->
+                        <div class="min-h-[250px] flex flex-col justify-center relative">
+                            <!-- Default empty state (Moved outside gradingResultsList so it doesn't get destroyed on clear) -->
                             <div id="noDataState" class="text-center py-10 text-slate-500 text-sm space-y-2">
                                 <span class="text-4xl block">💫</span>
                                 <p>Quest sheet solve karke upload karein.</p>
                                 <p class="text-xs text-slate-600">AI aapke exact formulas check karega!</p>
                             </div>
+
+                            <!-- DYNAMIC RESULTS LIST -->
+                            <div id="gradingResultsList" class="space-y-3"></div>
                         </div>
                     </div>
 
@@ -222,17 +225,21 @@
 
         // Sound Player using Web Audio API (Zero external assets needed!)
         const playTone = (freq, type, duration) => {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = type;
-            osc.frequency.value = freq;
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
-            osc.stop(ctx.currentTime + duration);
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {
+                console.log("Audio not allowed yet");
+            }
         };
 
         const playCorrectSound = () => {
@@ -280,28 +287,20 @@
                 ["", "", "", "", "", "", "", "", ""],
                 ["👉 INSTRUCTIONS: Write the correct mathematical Excel Formula in Column G using cell references (e.g., =D8^2 + E8^2). Do NOT type direct numbers!", "", "", "", "", "", "", "", ""],
                 ["Level", "Difficulty", "Math Equation", "Value: a", "Value: b", "Value: c", "Your Excel Formula (TYPE HERE)", "Expected Result", "Live Status"],
-                ["01", "🟢 Easy", "a² + b@", 3, 4, "-", "", 25, ""],
+                ["01", "🟢 Easy", "a² + b²", 3, 4, "-", "", 25, ""],
                 ["02", "🟢 Easy", "a * b + c", 5, 6, 2, "", 32, ""],
                 ["03", "🟡 Medium", "√(a² + b²)", 6, 8, "-", "", 10, ""],
                 ["04", "🟡 Medium", "(a³ - b²) / c", 4, 2, 2, "", 30, ""],
                 ["05", "🔴 Expert", "(-b + √(b² - 4ac)) / 2a", 1, -5, 6, "", 3, ""]
             ];
 
-            // Change the 'a² + b@' typo to match standard equation visual representation
-            aoa[7][2] = "a² + b²";
-
             const ws = XLSX.utils.aoa_to_sheet(aoa);
 
             // Adding real functional spreadsheet formulas to the cells
-            // Level 1 Expected: =D8^2+E8^2
             ws['H8'] = { f: 'D8^2+E8^2' };
-            // Level 2 Expected: =D9*E9+F9
             ws['H9'] = { f: 'D9*E9+F9' };
-            // Level 3 Expected: =SQRT(D10^2+E10^2)
             ws['H10'] = { f: 'SQRT(D10^2+E10^2)' };
-            // Level 4 Expected: =(D11^3-E11^2)/F11
             ws['H11'] = { f: '(D11^3-E11^2)/F11' };
-            // Level 5 Expected: =(-E12+SQRT(E12^2-4*D12*F12))/(2*D12)
             ws['H12'] = { f: '(-E12+SQRT(E12^2-4*D12*F12))/(2*D12)' };
 
             // Add auto live status formulas to Column I inside the downloaded sheet
@@ -360,8 +359,12 @@
         // Grader & AI formula validation
         function evaluateUploadedFile(rows) {
             const list = document.getElementById('gradingResultsList');
+            const noDataState = document.getElementById('noDataState');
+            
             list.innerHTML = '';
-            document.getElementById('noDataState').classList.add('hidden');
+            if (noDataState) {
+                noDataState.classList.add('hidden');
+            }
 
             let correctCount = 0;
             const totalTasks = 5;
@@ -385,7 +388,7 @@
                     const colG = row[6];
                     const colH = row[7];
 
-                    if (colG) {
+                    if (colG !== undefined && colG !== null) {
                         if (typeof colG === 'object' && colG.f) {
                             formulaStr = '=' + colG.f;
                         } else {
@@ -399,7 +402,7 @@
                 const isFormulaUsed = formulaStr.startsWith('=') && 
                                       (formulaStr.includes('+') || formulaStr.includes('*') || formulaStr.includes('-') || formulaStr.includes('/') || formulaStr.includes('^') || formulaStr.toUpperCase().includes('SQRT'));
                 
-                const matchesValue = studentValue !== null && Math.abs(Number(studentValue) - q.expected) < 0.1;
+                const matchesValue = studentValue !== null && studentValue !== undefined && Math.abs(Number(studentValue) - q.expected) < 0.1;
                 const isCorrect = isFormulaUsed && matchesValue;
 
                 if (isCorrect) correctCount++;
@@ -473,13 +476,13 @@
             fileInput.value = '';
             document.getElementById('uploadPrompt').classList.remove('hidden');
             document.getElementById('fileInfo').classList.add('hidden');
-            document.getElementById('noDataState').classList.remove('hidden');
-            document.getElementById('gradingResultsList').innerHTML = `
-                <div id="noDataState" class="text-center py-10 text-slate-500 text-sm space-y-2">
-                    <span class="text-4xl block">💫</span>
-                    <p>Quest sheet solve karke upload karein.</p>
-                    <p class="text-xs text-slate-600">AI aapke exact formulas check karega!</p>
-                </div>`;
+            
+            const noDataState = document.getElementById('noDataState');
+            if (noDataState) {
+                noDataState.classList.remove('hidden');
+            }
+            
+            document.getElementById('gradingResultsList').innerHTML = '';
             document.getElementById('success-box').classList.add('hidden');
             document.getElementById('score-progress').style.width = '0%';
             document.getElementById('score-text').textContent = '0 / 5 Completed';
